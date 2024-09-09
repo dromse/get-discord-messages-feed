@@ -1,0 +1,51 @@
+#!/bin/bash
+
+auth_token=
+channel_id=$1
+title=$2
+
+# https://www.linkedin.com/pulse/discord-web-api-get-channels-messages-using-access-token-keshav-kalra/
+api_messages=`curl --location --request GET "https://discord.com/api/v9/channels/$channel_id/messages?limit=10" \
+--header 'accept-language: en-US,en;q=0.9,it;q=0.8,de;q=0.7,es;q=0.6,pt;q=0.5' \
+--header "authorization: $auth_token" \
+--header 'sec-ch-ua-platform: "macOS"' \
+--header 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36' \
+--header 'x-discord-locale: en-US' \
+--header 'Cookie: __dcfduid=49abb8400f0015eda5e6a635b2344b6a; __sdcfduid=494bb8400f0011eda5e6a635b2344b6a298b870d23dc4dc4dc2ed47448ff82791438eca9542b8ddd0aec833c93404851'`
+
+parsed_messages=`echo $api_messages | jq "[.[] | { user: .author.username, msg: .content, time: .timestamp, id: .id }]"`
+
+messages=`echo $parsed_messages | jq -c '.[]'`
+
+# Generate Atom Feed Header
+echo '<?xml version="1.0" encoding="UTF-8"?>'
+echo '<feed xmlns="http://www.w3.org/2005/Atom">'
+echo "  <title>$title<title>"
+echo "  <updated>$(date -u +"%Y-%m-%dT%H:%M:%SZ")</updated>"
+echo "  <id>urn:uuid:$(uuidgen)</id>"
+echo "  <author>"
+echo "    <name>Discord Channel Bot</name>"
+echo "  </author>"
+
+# Loop through each message and add it as an Atom entry
+echo "$messages" | while read -r message; do
+  user=$(echo "$message" | jq -r '.user')
+  msg=$(echo "$message" | jq -r '.msg')
+  time=$(echo "$message" | jq -r '.time')
+  id=$(echo "$message" | jq -r '.id')
+  
+  # Generate UUID for each entry
+  entry_uuid=$(uuidgen)
+
+  # Generate Atom entry for each message
+  echo "  <entry>"
+  echo "    <title>Message from $user</title>"
+  echo "    <link href=\"#\"/>"
+  echo "    <id>urn:uuid:$id</id>"
+  echo "    <updated>$time</updated>"
+  echo "    <summary>$msg</summary>"
+  echo "  </entry>"
+done
+
+# Generate Atom Feed Footer
+echo '</feed>'
