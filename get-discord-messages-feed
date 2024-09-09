@@ -20,7 +20,7 @@ messages=`echo $parsed_messages | jq -c '.[]'`
 # Generate Atom Feed Header
 echo '<?xml version="1.0" encoding="UTF-8"?>'
 echo '<feed xmlns="http://www.w3.org/2005/Atom">'
-echo "  <title>$title<title>"
+echo "  <title>$title</title>"
 echo "  <updated>$(date -u +"%Y-%m-%dT%H:%M:%SZ")</updated>"
 echo "  <id>urn:uuid:$(uuidgen)</id>"
 echo "  <author>"
